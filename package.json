@@ -7,7 +7,8 @@
     "build": "tsc",
     "watch": "tsc -w",
     "lint": "eslint -c .eslintrc --ext .ts ./src",
-    "start": "npm run build && electron ./dist/main.js"
+    "start": "npm run build && electron ./dist/main.js",
+    "cli": "npm run build && node ./dist/cli-entry.js"
   },
   "repository": {
     "type": "git",
@@ -25,13 +26,15 @@
   },
   "homepage": "https://github.com/reilleya/cyclone#readme",
   "dependencies": {
-    "serialport": "^10.3.0"
+    "serialport": "^10.3.0",
+    "yargs": "^17.3.1"
   },
   "devDependencies": {
-    "typescript": "^4.5.5",
+    "@types/yargs": "^17.0.8",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "^4.33.0",
     "electron": "^17.0.1",
-    "eslint": "^7.32.0"
+    "eslint": "^7.32.0",
+    "typescript": "^4.5.5"
   }
 }
