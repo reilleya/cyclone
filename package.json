@@ -1,0 +1,37 @@
+{
+  "name": "cyclone",
+  "version": "0.0.0",
+  "description": "Control software for Marlin-driven filament winders",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "lint": "eslint -c .eslintrc --ext .ts ./src",
+    "start": "npm run build && electron ./dist/main.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/reilleya/cyclone.git"
+  },
+  "keywords": [
+    "cnc",
+    "composites",
+    "marlin"
+  ],
+  "author": "Andrew Reilley",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/reilleya/cyclone/issues"
+  },
+  "homepage": "https://github.com/reilleya/cyclone#readme",
+  "dependencies": {
+    "serialport": "^10.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.5.5",
+    "@typescript-eslint/eslint-plugin": "^4.33.0",
+    "@typescript-eslint/parser": "^4.33.0",
+    "electron": "^17.0.1",
+    "eslint": "^7.32.0"
+  }
+}
