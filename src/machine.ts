@@ -34,11 +34,12 @@ export class Machine {
         });
 
         return new Promise((resolve, reject) => {
-            console.log(`Opening '${this.portPath}' at ${this.baudRate} baud`);
+            console.log(`Opening "${this.portPath}" at ${this.baudRate} baud`);
             this.port.open((error) => {
               if (isObject(error)) {
                 return reject(`Error opening port: ${error.message}`);
               }
+              console.log('Port opened.\n');
               this.isInitialized = true;
               this.tryNextCommand();
               resolve();

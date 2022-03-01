@@ -14,10 +14,11 @@ require('yargs').command({
             type: 'string'
         }
     },
-    async handler(argv: Record<string, unknown>) {
+    async handler(argv: Record<string, string>) {
         const machine = new Machine(argv.port);
         const machineInitialized = machine.initialize();
         const data = await fs.readFile(argv.file);
+        console.log(`Sending commands from "${argv.file}"`);
         await machineInitialized;
         for (const command of data.toString().trim().split('\n')) {
             machine.queueCommand(command);
