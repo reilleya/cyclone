@@ -1,4 +1,5 @@
-import { Machine } from './machine';
+import { MarlinPort } from './marlin-port';
+import { planWind } from './planner';
 import { hideBin } from 'yargs/helpers';
 import { promises as fs } from "fs";
 
@@ -9,20 +10,41 @@ require('yargs').command({
     describe: 'Run a gcode file on the machine',
     builder: {
         port: {
+            alias: 'p',
             describe: 'Serial port to connect to',
             demandOption: true,
             type: 'string'
         }
     },
     async handler(argv: Record<string, string>) {
-        const machine = new Machine(argv.port);
-        const machineInitialized = machine.initialize();
+        const marlin = new MarlinPort(argv.port);
+        const marlinInitialized = marlin.initialize();
         const data = await fs.readFile(argv.file);
         console.log(`Sending commands from "${argv.file}"`);
-        await machineInitialized;
+        await marlin;
         for (const command of data.toString().trim().split('\n')) {
-            machine.queueCommand(command);
+            marlin.queueCommand(command);
         }
+    }
+})
+.command({
+    command: 'plan <file>',
+    describe: 'Generate gcode from a .wind file',
+    builder: {
+        output: {
+            alias: 'o',
+            describe: 'File to output to',
+            demandOption: false,
+            type: 'string'
+        }
+    },
+    async handler(argv: Record<string, string>) {
+        const fileContents = await fs.readFile(argv.file, "binary");
+        const windDefinition = JSON.parse(fileContents);
+        // Todo: Verify contents
+        const windCommands = planWind(windDefinition);
+        await fs.writeFile(argv.output, windCommands.join('\n'));
+        console.log(`Wrote ${windCommands.length} commands to "${argv.output}"`);
     }
 })
 .help()

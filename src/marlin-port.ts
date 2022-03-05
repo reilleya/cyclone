@@ -1,7 +1,7 @@
 import { SerialPort, ReadlineParser } from 'serialport';
 import { isObject } from './helpers';
 
-export class Machine {
+export class MarlinPort {
     
     private isInitialized = false;
     private port: SerialPort;
