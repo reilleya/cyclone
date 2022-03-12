@@ -1,5 +1,6 @@
-// Abstracts generating GCode while performing boundary checking, etc
+import { TCoordinate, ECoordinateAxes, AxisLookup } from './types';
 
+// Abstracts generating GCode while performing boundary checking, etc
 export class WinderMachine {
 
     private mandrelAngle = 0;
@@ -19,6 +20,24 @@ export class WinderMachine {
 
     public setFeedRate(feedRate: number): void {
         this.gcode.push(`G0 F${feedRate}`);
+    }
+
+    public move(position: TCoordinate) {
+        let command = 'G0';
+        for (const axis in position) {
+            const rawAxis = AxisLookup[axis as ECoordinateAxes];
+            command += ` ${rawAxis}${position[axis as ECoordinateAxes]}`;
+        }
+        this.gcode.push(command);
+    }
+
+    public setPosition(position: TCoordinate) {
+        let command = 'G92';
+        for (const axis of Object.keys(position)) {
+            const rawAxis = AxisLookup[axis as ECoordinateAxes];
+            command += ` ${rawAxis}${position[axis as ECoordinateAxes]}`;
+        }
+        this.gcode.push(command);
     }
 
 }

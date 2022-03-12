@@ -48,3 +48,26 @@ export interface IWindParameters {
     towParameters: ITowParameters;
     defaultFeedRate: number;
 }
+
+
+/**
+ *  Helpers types
+ */
+
+export const enum ECoordinateAxes {
+    CARRIAGE = 'carriage',
+    MANDREL = 'mandrel',
+    DELIVERY_HEAD = 'deliveryHead'
+}
+
+export type TCoordinateAxes = Record<ECoordinateAxes, number>;
+
+export type AtLeastOne<T, U = {[K in keyof T]: Pick<T, K> }> = Partial<T> & U[keyof U];
+
+export type TCoordinate = AtLeastOne<TCoordinateAxes>;
+
+export const AxisLookup: Record<keyof TCoordinateAxes, string> = {
+    [ECoordinateAxes.CARRIAGE]: 'X',
+    [ECoordinateAxes.MANDREL]: 'Y',
+    [ECoordinateAxes.DELIVERY_HEAD]: 'Z'
+}

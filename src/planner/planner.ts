@@ -1,4 +1,5 @@
 import type { IWindParameters, IMandrelParameters, ITowParameters, ILayerParameters, THelicalLayer, THoopLayer } from './types';
+import { ECoordinateAxes } from './types';
 import { ELayerType } from './types';
 import { WinderMachine } from './machine';
 
@@ -53,20 +54,44 @@ export function planHoopLayer(machine: WinderMachine, layerParameters: ILayerPar
     const nearLockPositionDegrees = nearMandrelPositionDegrees + lockDegrees;
 
     // Do a small near lock
-    machine.addRawGCode(`G0 X0 Y${-lockDegrees} Z0`);
+    machine.move({
+        [ECoordinateAxes.CARRIAGE]: 0,
+        [ECoordinateAxes.MANDREL]: -lockDegrees,
+        [ECoordinateAxes.DELIVERY_HEAD]: 0
+    });
     // Tilt delivery head
-    machine.addRawGCode(`G0 Z${windAngle}`);
+    machine.move({
+        [ECoordinateAxes.DELIVERY_HEAD]: windAngle
+    });
     // Wind to the far end of the mandrel
-    machine.addRawGCode(`G0 X${layerParameters.mandrelParameters.windLength} Y${-farMandrelPositionDegrees}`);
+    machine.move({
+        [ECoordinateAxes.CARRIAGE]: layerParameters.mandrelParameters.windLength,
+        [ECoordinateAxes.MANDREL]: -farMandrelPositionDegrees
+    });
     // Do a small far lock
-    machine.addRawGCode(`G0 X${layerParameters.mandrelParameters.windLength} Y${-farLockPositionDegrees} Z0`);
+    machine.move({
+        [ECoordinateAxes.MANDREL]: -farLockPositionDegrees,
+        [ECoordinateAxes.DELIVERY_HEAD]: 0
+    });
     // Tilt delivery head
-    machine.addRawGCode(`G0 Z${-1 * windAngle}`);
+    machine.move({
+        [ECoordinateAxes.DELIVERY_HEAD]: -windAngle,
+    });
     // Wind to the near end of the mandrel
-    machine.addRawGCode(`G0 X0 Y${-nearMandrelPositionDegrees}`);
+    machine.move({
+        [ECoordinateAxes.CARRIAGE]: 0,
+        [ECoordinateAxes.MANDREL]: -nearMandrelPositionDegrees
+    });
     // Do a small near lock
-    machine.addRawGCode(`G0 X0 Y${-nearMandrelPositionDegrees} Z0`);
-    machine.addRawGCode('G92 X0 Y0 Z0');
+    machine.move({
+        [ECoordinateAxes.MANDREL]: -nearLockPositionDegrees,
+        [ECoordinateAxes.DELIVERY_HEAD]: 0
+    });
+    machine.setPosition({
+        [ECoordinateAxes.CARRIAGE]: 0,
+        [ECoordinateAxes.MANDREL]: 0,
+        [ECoordinateAxes.DELIVERY_HEAD]: 0
+    });
 }
 
 export function planHelicalLayer(machine: WinderMachine, layerParameters: ILayerParameters<THelicalLayer>): void {
