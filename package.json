@@ -26,6 +26,8 @@
   },
   "homepage": "https://github.com/reilleya/cyclone#readme",
   "dependencies": {
+    "@types/canvasjs": "^1.9.7",
+    "canvas": "^2.9.1",
     "serialport": "^10.3.0",
     "yargs": "^17.3.1"
   },
