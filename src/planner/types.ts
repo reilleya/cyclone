@@ -28,6 +28,8 @@ export type THoopLayer = {
 export type THelicalLayer = {
     windType: ELayerType.HELICAL;
     windAngle: number;
+    patternNumber: number;
+    skipIndex: number;
 } 
 
 export type TLayerParameters = THoopLayer | THelicalLayer;
