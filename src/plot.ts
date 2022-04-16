@@ -59,7 +59,7 @@ export function plotGCode(gcode: string[]): Readable {
                 nextXCoord = Number.parseFloat(coordinate.slice(1));
             }
             if (coordinate[0] === 'Y') {
-                nextYCoord = -Number.parseFloat(coordinate.slice(1));
+                nextYCoord = Number.parseFloat(coordinate.slice(1));
             }
         }
 
