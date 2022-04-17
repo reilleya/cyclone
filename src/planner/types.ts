@@ -27,9 +27,9 @@ export type THoopLayer = {
 
 export type THelicalLayer = {
     windType: ELayerType.HELICAL;
-    windAngle: number;
-    patternNumber: number;
-    skipIndex: number;
+    windAngle: number; // The complement of the angle between the mandrel axis and the wound tow
+    patternNumber: number; // The number of "start positions", evenly spaced around the mandrel
+    skipIndex: number; // The increment applied when deciding the next start position
 } 
 
 export type TLayerParameters = THoopLayer | THelicalLayer;
