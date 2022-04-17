@@ -96,12 +96,13 @@ export function planHoopLayer(machine: WinderMachine, layerParameters: ILayerPar
 }
 
 export function planHelicalLayer(machine: WinderMachine, layerParameters: ILayerParameters<THelicalLayer>): void {
+    // TODO: move to config values or remove?
+    const deliveryHeadPassStartAngle = -10;
 
-    // TODO: move to config values
-    const lockDegrees = 720;
-    const windLeadInMM = 30;
-    const deliveryHeadPassStartAngle = 10;
-
+    // The portion of the pass on each end during which the delivery head rotates into place
+    const windLeadInMM = layerParameters.parameters.windLeadInMM;
+    // The number of degrees that the mandrel rotates through at the ends of each circuit
+    const lockDegrees = layerParameters.parameters.lockDegrees;
     // The angle that the delivery head is commanded to during a "there" pass
     const deliveryHeadAngleDegrees = -layerParameters.parameters.windAngle;
     // Self explanatory
@@ -128,6 +129,19 @@ export function planHelicalLayer(machine: WinderMachine, layerParameters: ILayer
     const leadInDegrees = passDegreesPerMM * windLeadInMM;
     // The number of degrees to rotate the mandrel during the middle (non-leadin) part of a pass
     const mainPassDegrees = passDegreesPerMM * (layerParameters.mandrelParameters.windLength - windLeadInMM);
+    // Compute parameters specific to each pass direction
+    const passParameters = [
+        { // There pass
+            deliveryHeadSign: 1,
+            leadInEndMM: windLeadInMM,
+            fullPassEndMM: layerParameters.mandrelParameters.windLength,
+        },
+        { // Back pass
+            deliveryHeadSign: -1,
+            leadInEndMM: layerParameters.mandrelParameters.windLength - windLeadInMM,
+            fullPassEndMM: 0,
+        }
+    ]
 
     console.log(`Doing helical wind, ${numCircuits} circuits`);
     // TODO: move validation/adjustment to a function
@@ -148,78 +162,50 @@ export function planHelicalLayer(machine: WinderMachine, layerParameters: ILayer
     let mandrelPositionDegrees = 0;
     for (let patternIndex = 0; patternIndex < patternNumber; patternIndex ++) {
         for(let inPatternIndex = 0; inPatternIndex < circuitsPerPattern; inPatternIndex ++) {
-            machine.insertComment(`Pattern: ${patternIndex + 1}/${patternNumber} Pass: ${inPatternIndex + 1}/${circuitsPerPattern}`);
-            // Wind to the start point for this pass, while tilting the delivery head to clean up from last pass
-            machine.move({
-                [ECoordinateAxes.MANDREL]: mandrelPositionDegrees,
-                [ECoordinateAxes.DELIVERY_HEAD]: 0
-            });
+            machine.insertComment(`Pattern: ${patternIndex + 1}/${patternNumber} Circuit: ${inPatternIndex + 1}/${circuitsPerPattern}`);
 
-            // Tilt delivery head to the start position for 'there' pass
-            machine.move({
-                [ECoordinateAxes.DELIVERY_HEAD]: deliveryHeadPassStartAngle,
-            });
+            for (let passParams of passParameters) {
+                // Wind to the start point for this pass, while tilting the delivery head to clean up from last pass
+                machine.move({
+                    [ECoordinateAxes.MANDREL]: mandrelPositionDegrees,
+                    [ECoordinateAxes.DELIVERY_HEAD]: 0
+                });
 
-            // Wind through the pass lead in, tilting the delivery head into position
-            mandrelPositionDegrees += leadInDegrees;
-            machine.move({
-                [ECoordinateAxes.CARRIAGE]: windLeadInMM,
-                [ECoordinateAxes.MANDREL]: mandrelPositionDegrees,
-                [ECoordinateAxes.DELIVERY_HEAD]: deliveryHeadAngleDegrees,
-            });
+                // Tilt delivery head to the start position for 'there' pass
+                machine.move({
+                    [ECoordinateAxes.DELIVERY_HEAD]: passParams.deliveryHeadSign * deliveryHeadPassStartAngle,
+                });
 
-            // Wind to the far end of the mandrel
-            mandrelPositionDegrees += mainPassDegrees;
-            machine.move({
-                [ECoordinateAxes.CARRIAGE]: layerParameters.mandrelParameters.windLength,
-                [ECoordinateAxes.MANDREL]: mandrelPositionDegrees
-            });
+                // Wind through the pass lead in, tilting the delivery head into position
+                mandrelPositionDegrees += leadInDegrees;
+                machine.move({
+                    [ECoordinateAxes.CARRIAGE]: passParams.leadInEndMM,
+                    [ECoordinateAxes.MANDREL]: mandrelPositionDegrees,
+                    [ECoordinateAxes.DELIVERY_HEAD]: passParams.deliveryHeadSign * deliveryHeadAngleDegrees,
+                });
 
-            // Tilt delivery head half way to keep filament controlled
-            machine.move({
-                [ECoordinateAxes.DELIVERY_HEAD]: 0.5 * deliveryHeadAngleDegrees,
-            });
-            
-            // Tilt delivery head back, rotate mandrel to next start position
-            mandrelPositionDegrees += lockDegrees - (passRotationDegrees % 360);
-            machine.move({
-                [ECoordinateAxes.DELIVERY_HEAD]: 0,
-                [ECoordinateAxes.MANDREL]: mandrelPositionDegrees
-            });
+                // Wind to the end of the mandrel
+                mandrelPositionDegrees += mainPassDegrees;
+                machine.move({
+                    [ECoordinateAxes.CARRIAGE]: passParams.fullPassEndMM,
+                    [ECoordinateAxes.MANDREL]: mandrelPositionDegrees
+                });
 
-            // Tilt delivery head for 'back' pass
-            machine.move({
-                [ECoordinateAxes.DELIVERY_HEAD]: -deliveryHeadPassStartAngle,
-            });
+                // Tilt delivery head half way to keep filament controlled
+                machine.move({
+                    [ECoordinateAxes.DELIVERY_HEAD]: passParams.deliveryHeadSign * 0.5 * deliveryHeadAngleDegrees,
+                });
 
-            // Wind through the pass lead in, tilting the delivery head into position
-            mandrelPositionDegrees += leadInDegrees;
-            machine.move({
-                [ECoordinateAxes.CARRIAGE]: layerParameters.mandrelParameters.windLength - windLeadInMM,
-                [ECoordinateAxes.MANDREL]: mandrelPositionDegrees,
-                [ECoordinateAxes.DELIVERY_HEAD]: -deliveryHeadAngleDegrees,
-            });
+                mandrelPositionDegrees += lockDegrees - (passRotationDegrees % 360);
+            }
 
-            // Wind back to the near end of the mandrel
-            mandrelPositionDegrees += mainPassDegrees;
-            machine.move({
-                [ECoordinateAxes.CARRIAGE]: 0,
-                [ECoordinateAxes.MANDREL]: mandrelPositionDegrees
-            });
-
-            // Tilt delivery head half way to keep filament controlled
-            machine.move({
-                [ECoordinateAxes.DELIVERY_HEAD]: -0.5 * deliveryHeadAngleDegrees,
-            });
-
-            // Make sure that we return to 0
-            mandrelPositionDegrees += lockDegrees - (passRotationDegrees % 360);
-            // Move to the next pattern number start position
+            // Move to the next start position in this pattern
             mandrelPositionDegrees += circuitStepDegrees * numCircuits / layerParameters.parameters.patternNumber;
         }
+
+        // Move to the next pattern start position
         mandrelPositionDegrees += circuitStepDegrees;
     }
-
 
     mandrelPositionDegrees += lockDegrees;
     machine.move({

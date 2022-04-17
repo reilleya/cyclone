@@ -30,7 +30,9 @@ export type THelicalLayer = {
     windAngle: number; // The complement of the angle between the mandrel axis and the wound tow
     patternNumber: number; // The number of "start positions", evenly spaced around the mandrel
     skipIndex: number; // The increment applied when deciding the next start position
-} 
+    lockDegrees: number; // The number of degrees that the mandrel rotates through at the ends of each circuit
+    windLeadInMM: number; // The portion of the pass on each end during which the delivery head rotates into place
+}
 
 export type TLayerParameters = THoopLayer | THelicalLayer;
 
