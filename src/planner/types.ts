@@ -31,7 +31,8 @@ export type THelicalLayer = {
     patternNumber: number; // The number of "start positions", evenly spaced around the mandrel
     skipIndex: number; // The increment applied when deciding the next start position
     lockDegrees: number; // The number of degrees that the mandrel rotates through at the ends of each circuit
-    windLeadInMM: number; // The portion of the pass on each end during which the delivery head rotates into place
+    leadInMM: number; // The portion of the pass on each end during which the delivery head rotates into place
+    leadOutDegrees: number; // The portion of each lock that the delivery head rotates back to level during
 }
 
 export type TLayerParameters = THoopLayer | THelicalLayer;

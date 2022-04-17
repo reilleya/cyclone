@@ -67,7 +67,11 @@ export class MarlinPort {
             return void 0;
         }
 
-        console.log(`Got back '${line}'`);
+        if ( line === 'echo:busy: processing' ) {
+            return void 0;
+        }
+
+        console.log(`Got back unexpected response '${line}'`);
         return void 0;
     }
 
@@ -76,6 +80,11 @@ export class MarlinPort {
             return void 0;
         }
         const commandToSend = this.commandQueue.shift();
+        // Check for comments
+        if (commandToSend.slice(0, 1) === ';') {
+            console.log(commandToSend.slice(1).trim())
+            return this.tryNextCommand();
+        }
         console.log(`Sending "${commandToSend}"`);
         this.hasCommandWaiting = true;
         this.port.write(`${commandToSend}\n`);

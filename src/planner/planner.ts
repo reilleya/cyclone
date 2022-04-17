@@ -99,8 +99,10 @@ export function planHelicalLayer(machine: WinderMachine, layerParameters: ILayer
     // TODO: move to config values or remove?
     const deliveryHeadPassStartAngle = -10;
 
+    // The portion of each lock that the delivery head rotates back to level during
+    const leadOutDegrees = layerParameters.parameters.leadOutDegrees;
     // The portion of the pass on each end during which the delivery head rotates into place
-    const windLeadInMM = layerParameters.parameters.windLeadInMM;
+    const windLeadInMM = layerParameters.parameters.leadInMM;
     // The number of degrees that the mandrel rotates through at the ends of each circuit
     const lockDegrees = layerParameters.parameters.lockDegrees;
     // The angle that the delivery head is commanded to during a "there" pass
@@ -171,12 +173,12 @@ export function planHelicalLayer(machine: WinderMachine, layerParameters: ILayer
                     [ECoordinateAxes.DELIVERY_HEAD]: 0
                 });
 
-                // Tilt delivery head to the start position for 'there' pass
+                // Tilt delivery head to the start position for the pass
                 machine.move({
                     [ECoordinateAxes.DELIVERY_HEAD]: passParams.deliveryHeadSign * deliveryHeadPassStartAngle,
                 });
 
-                // Wind through the pass lead in, tilting the delivery head into position
+                // Wind through the pass lead in, tilting the delivery head into final position
                 mandrelPositionDegrees += leadInDegrees;
                 machine.move({
                     [ECoordinateAxes.CARRIAGE]: passParams.leadInEndMM,
@@ -184,19 +186,21 @@ export function planHelicalLayer(machine: WinderMachine, layerParameters: ILayer
                     [ECoordinateAxes.DELIVERY_HEAD]: passParams.deliveryHeadSign * deliveryHeadAngleDegrees,
                 });
 
-                // Wind to the end of the mandrel
+                // Wind to the end of the pass
                 mandrelPositionDegrees += mainPassDegrees;
                 machine.move({
                     [ECoordinateAxes.CARRIAGE]: passParams.fullPassEndMM,
                     [ECoordinateAxes.MANDREL]: mandrelPositionDegrees
                 });
 
-                // Tilt delivery head half way to keep filament controlled
+                // Wind through the pass lead in, tilting the delivery head into final position
+                mandrelPositionDegrees += leadOutDegrees;
                 machine.move({
-                    [ECoordinateAxes.DELIVERY_HEAD]: passParams.deliveryHeadSign * 0.5 * deliveryHeadAngleDegrees,
+                    [ECoordinateAxes.MANDREL]: mandrelPositionDegrees,
+                    [ECoordinateAxes.DELIVERY_HEAD]: passParams.deliveryHeadSign * deliveryHeadPassStartAngle,
                 });
 
-                mandrelPositionDegrees += lockDegrees - (passRotationDegrees % 360);
+                mandrelPositionDegrees += lockDegrees - leadOutDegrees - (passRotationDegrees % 360);
             }
 
             // Move to the next start position in this pattern
