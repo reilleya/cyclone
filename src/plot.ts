@@ -35,7 +35,7 @@ function generateCoordinates(start: ICoordinate2D, end: ICoordinate2D): ICoordin
 }
 
 export function plotGCode(gcode: string[]): Readable {
-    const canvas = createCanvas(500, 360);
+    const canvas = createCanvas(600, 360);
     const ctx = canvas.getContext('2d');
 
     let xCoord = 0;
@@ -64,6 +64,17 @@ export function plotGCode(gcode: string[]): Readable {
         }
 
         for (const segment of generateCoordinates({x: xCoord, y: yCoord}, {x: nextXCoord, y: nextYCoord})) {
+
+            ctx.strokeStyle = 'rgb(73, 0, 168)';
+            ctx.lineWidth = 12;
+            ctx.beginPath();
+            for (const point of segment) {
+                ctx.lineTo(point.x, point.y);
+            }
+            ctx.stroke();
+
+            ctx.strokeStyle = 'rgb(252, 211, 3)';
+            ctx.lineWidth = 9;
             ctx.beginPath();
             for (const point of segment) {
                 ctx.lineTo(point.x, point.y);
