@@ -1,41 +1,26 @@
 import { createCanvas, loadImage } from 'canvas';
 import { Readable } from 'stream';
+import { ICoordinate2D } from './types'
+import { generateCoordinates } from './helpers';
+import { IMandrelParameters, ITowParameters } from '../planner/types';
 
-// TODO: move this
-interface ICoordinate2D {
-    x: number;
-    y: number;
+interface IWindParameters {
+    mandrel: IMandrelParameters;
+    tow: ITowParameters;
 }
 
-// Turn two machine coordinate endpoints into a set of screen-space line segments
-function generateCoordinates(start: ICoordinate2D, end: ICoordinate2D): ICoordinate2D[][] {
-    // Are both endpoints in the same modulo? If so, mod360 and return
-    if (Math.floor(start.y / 360) === Math.floor(end.y / 360)) {
-        return [[{x: start.x, y: start.y % 360}, {x: end.x, y: end.y % 360}]];
+export function plotGCode(gcode: string[]): Readable | void {
+    // Look for a header and abort early if we don't find one in the first line
+    const headerLineParts = gcode[0].split(' ');
+    if (!(headerLineParts[0] === ';' && headerLineParts[1] === 'Parameters')) {
+        console.log('Did not find header comment in first line');
+        return void 0;
     }
 
-    // If not, calc the intersection point between the ray and the relevant edge
-    const slope = (end.y - start.y) / (end.x - start.x);
+    // TODO: validate these
+    const windingParameters = JSON.parse(headerLineParts.slice(2).join(' ')) as IWindParameters;
 
-    let currentSegmentEndY = 0;
-    let nextSegmentStartY = 360 * Math.floor(start.y / 360);
-    let nextSegmentStartYAdj = -0.001; // TODO: refactor this to not care if the segment ends on 360N
-
-    if (end.y > start.y) {
-        currentSegmentEndY = 360;
-        nextSegmentStartY = 360 * Math.ceil(start.y / 360);
-        nextSegmentStartYAdj = 0.001;
-    }
-
-    const currentSegmentEndX = start.x + ((nextSegmentStartY - start.y) * (1/slope));
-
-    return [[{x: start.x, y: start.y % 360}, {x: currentSegmentEndX, y: currentSegmentEndY}]].concat(
-        generateCoordinates({x: currentSegmentEndX, y: nextSegmentStartY + nextSegmentStartYAdj}, end)
-    )    
-}
-
-export function plotGCode(gcode: string[]): Readable {
-    const canvas = createCanvas(600, 360);
+    const canvas = createCanvas(windingParameters.mandrel.windLength, 360);
     const ctx = canvas.getContext('2d');
 
     let xCoord = 0;
@@ -47,7 +32,12 @@ export function plotGCode(gcode: string[]): Readable {
     
     for (const line of gcode) {
         const lineParts = line.split(' ');
-        if (lineParts[0] != 'G0') {
+        if (lineParts[0] === ';') {
+            // Comment, nothing to do
+            continue;
+        }
+
+        if (lineParts[0] !== 'G0') {
             console.log(`Unknown gcode line: '${line}', skipping`)
             continue;
         }
@@ -66,7 +56,7 @@ export function plotGCode(gcode: string[]): Readable {
         for (const segment of generateCoordinates({x: xCoord, y: yCoord}, {x: nextXCoord, y: nextYCoord})) {
 
             ctx.strokeStyle = 'rgb(73, 0, 168)';
-            ctx.lineWidth = 12;
+            ctx.lineWidth = windingParameters.tow.width;
             ctx.beginPath();
             for (const point of segment) {
                 ctx.lineTo(point.x, point.y);
@@ -74,7 +64,7 @@ export function plotGCode(gcode: string[]): Readable {
             ctx.stroke();
 
             ctx.strokeStyle = 'rgb(252, 211, 3)';
-            ctx.lineWidth = 9;
+            ctx.lineWidth = windingParameters.tow.width * 0.75;
             ctx.beginPath();
             for (const point of segment) {
                 ctx.lineTo(point.x, point.y);

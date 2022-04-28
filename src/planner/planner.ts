@@ -8,6 +8,11 @@ export function planWind(windingParameters: IWindParameters): string[] {
 
     const machine = new WinderMachine();
 
+    const headerParameters = {
+        mandrel: windingParameters.mandrelParameters,
+        tow: windingParameters.towParameters
+    }
+    machine.insertComment(`Parameters ${JSON.stringify(headerParameters)}`);
     machine.addRawGCode('G0 X0 Y0 Z0');
     machine.setFeedRate(windingParameters.defaultFeedRate);
     // TODO: Run other setup stuff
@@ -36,10 +41,12 @@ export function planWind(windingParameters: IWindParameters): string[] {
 
     // TODO: Run cleanup stuff
 
+    console.log(`Rough time estimate: ${machine.getGCodeTimeS()} seconds`);
+
     return machine.getGCode();
 }
 
-// Each layer planning function is responsible for a there-and-back and resetting the cordinates to (0, 0, 0) at the end
+// Each layer planning function is responsible for a there-and-back and resetting the coordinates to (0, 0, 0) at the end
 
 export function planHoopLayer(machine: WinderMachine, layerParameters: ILayerParameters<THoopLayer>): void {
     // For now, assume overlap factor of 1.0
@@ -88,11 +95,7 @@ export function planHoopLayer(machine: WinderMachine, layerParameters: ILayerPar
         [ECoordinateAxes.MANDREL]: nearLockPositionDegrees,
         [ECoordinateAxes.DELIVERY_HEAD]: 0
     });
-    machine.setPosition({
-        [ECoordinateAxes.CARRIAGE]: 0,
-        [ECoordinateAxes.MANDREL]: 0,
-        [ECoordinateAxes.DELIVERY_HEAD]: 0
-    });
+    machine.zeroAxes(nearLockPositionDegrees);
 }
 
 export function planHelicalLayer(machine: WinderMachine, layerParameters: ILayerParameters<THelicalLayer>): void {
@@ -115,8 +118,8 @@ export function planHelicalLayer(machine: WinderMachine, layerParameters: ILayer
     // Note that each circuit includes a "there" and a "back" portion, and including both this number of circuits will
     // cover the mandrel twice
     const numCircuits = Math.ceil(mandrelCircumference / towArcLength);
-    // After each circuit (there and back) how much to rotate the mandrel to the next start position
-    const circuitStepDegrees = 360 * (1 / numCircuits);
+    // After each pattern (<pattern number> cycles evenly spaced around the mandrel) how much to rotate the mandrel
+    const patternStepDegrees = 360 * (1 / numCircuits);
     // How many MM the surface of the mandrel should move per pass based on the length and wind angle
     const passRotationMM = layerParameters.mandrelParameters.windLength * Math.tan(degToRad(layerParameters.parameters.windAngle));
     // How many degrees the mandrel should rotate in a pass
@@ -125,8 +128,8 @@ export function planHelicalLayer(machine: WinderMachine, layerParameters: ILayer
     const passDegreesPerMM = passRotationDegrees / layerParameters.mandrelParameters.windLength;
     // The number of "start positions", evenly spaced around the mandrel
     const patternNumber = layerParameters.parameters.patternNumber;
-    // The number of circuits to complete per pattern to hit the total number of circuits
-    const circuitsPerPattern = numCircuits / layerParameters.parameters.patternNumber;
+    // The number of patterns that will be completed to cover the mandrel
+    const numberOfPatterns = numCircuits / layerParameters.parameters.patternNumber;
     // The number of degrees to rotate the mandrel during the lead in
     const leadInDegrees = passDegreesPerMM * windLeadInMM;
     // The number of degrees to rotate the mandrel during the middle (non-leadin) part of a pass
@@ -162,9 +165,11 @@ export function planHelicalLayer(machine: WinderMachine, layerParameters: ILayer
     });
 
     let mandrelPositionDegrees = 0;
-    for (let patternIndex = 0; patternIndex < patternNumber; patternIndex ++) {
-        for(let inPatternIndex = 0; inPatternIndex < circuitsPerPattern; inPatternIndex ++) {
-            machine.insertComment(`Pattern: ${patternIndex + 1}/${patternNumber} Circuit: ${inPatternIndex + 1}/${circuitsPerPattern}`);
+    // The outer loop tracks the number of times we complete the pattern on the mandrel
+    for (let patternIndex = 0; patternIndex < numberOfPatterns; patternIndex ++) {
+        // The inner loop tracks the <pattern number> evenly-spaced start positions around the mandrel in each pattern
+        for(let inPatternIndex = 0; inPatternIndex < patternNumber; inPatternIndex ++) {
+            machine.insertComment(`Pattern: ${patternIndex + 1}/${numberOfPatterns} Circuit: ${inPatternIndex + 1}/${patternNumber}`);
 
             for (let passParams of passParameters) {
                 // Wind to the start point for this pass, while tilting the delivery head to clean up from last pass
@@ -204,11 +209,11 @@ export function planHelicalLayer(machine: WinderMachine, layerParameters: ILayer
             }
 
             // Move to the next start position in this pattern
-            mandrelPositionDegrees += circuitStepDegrees * numCircuits / layerParameters.parameters.patternNumber;
+            mandrelPositionDegrees += patternStepDegrees * numCircuits / layerParameters.parameters.patternNumber;
         }
 
         // Move to the next pattern start position
-        mandrelPositionDegrees += circuitStepDegrees;
+        mandrelPositionDegrees += patternStepDegrees;
     }
 
     mandrelPositionDegrees += lockDegrees;
@@ -217,17 +222,5 @@ export function planHelicalLayer(machine: WinderMachine, layerParameters: ILayer
         [ECoordinateAxes.DELIVERY_HEAD]: 0,
     });
 
-    machine.setPosition({
-        [ECoordinateAxes.CARRIAGE]: 0,
-        [ECoordinateAxes.MANDREL]: (mandrelPositionDegrees % 360),
-        [ECoordinateAxes.DELIVERY_HEAD]: 0
-    });
-
-    machine.move({
-        [ECoordinateAxes.MANDREL]: 360
-    });
-
-    machine.setPosition({
-        [ECoordinateAxes.MANDREL]: 0
-    });
+    machine.zeroAxes(mandrelPositionDegrees);
 }

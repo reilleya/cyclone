@@ -1,6 +1,6 @@
 import { MarlinPort } from './marlin-port';
 import { planWind } from './planner';
-import { plotGCode } from './plot';
+import { plotGCode } from './plotter';
 import { hideBin } from 'yargs/helpers';
 import { promises as fs, createWriteStream } from 'fs';
 
@@ -17,7 +17,7 @@ require('yargs').command({
             type: 'string'
         }
     },
-    async handler(argv: Record<string, string>) {
+    async handler(argv: Record<string, string>): Promise<void> {
         const marlin = new MarlinPort(argv.port);
         const marlinInitialized = marlin.initialize();
         const data = await fs.readFile(argv.file);
@@ -39,7 +39,7 @@ require('yargs').command({
             type: 'string'
         }
     },
-    async handler(argv: Record<string, string>) {
+    async handler(argv: Record<string, string>): Promise<void> {
         const fileContents = await fs.readFile(argv.file, "binary");
         const windDefinition = JSON.parse(fileContents);
         // Todo: Verify contents
@@ -59,9 +59,13 @@ require('yargs').command({
             type: 'string'
         }
     },
-    async handler(argv: Record<string, string>) {
+    async handler(argv: Record<string, string>): Promise<void> {
         const fileContents = await fs.readFile(argv.file, "binary");
         const stream = plotGCode(fileContents.split('\n'));
+        if (typeof stream === 'undefined') {
+            console.log('No image to write');
+            return void 0;
+        }
         const outputFile = createWriteStream(argv.output);
         stream.pipe(outputFile);
         outputFile.on('finish', () => console.log(`The PNG file was created at ${argv.output}`));
