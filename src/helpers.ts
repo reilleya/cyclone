@@ -10,3 +10,8 @@ export function degToRad(degrees: number) {
 export function radToDeg(radians: number) {
     return radians * 180 / Math.PI;
 }
+
+// Takes in a floating point number from a calculation and strips extra precision so it can be passed to marlin
+export function stripPrecision(rawNumber: number, digits=6): number {
+    return Number.parseFloat(rawNumber.toFixed(digits));
+}

@@ -1,4 +1,5 @@
 import { TCoordinate, ECoordinateAxes, AxisLookup, TCoordinateAxes } from './types';
+import { stripPrecision } from '../helpers';
 
 // Abstracts generating GCode while performing boundary checking, etc
 export class WinderMachine {
@@ -24,7 +25,7 @@ export class WinderMachine {
 
     public setFeedRate(feedRateMMpM: number): void {
         this.feedRateMMpM = feedRateMMpM;
-        this.gcode.push(`G0 F${feedRateMMpM}`);
+        this.gcode.push(`G0 F${stripPrecision(feedRateMMpM)}`);
     }
 
     public move(position: TCoordinate): void {
@@ -32,7 +33,7 @@ export class WinderMachine {
         let command = 'G0';
         for (const axis in position) {
             const rawAxis = AxisLookup[axis as ECoordinateAxes];
-            command += ` ${rawAxis}${position[axis as ECoordinateAxes]}`;
+            command += ` ${rawAxis}${stripPrecision(position[axis as ECoordinateAxes])}`;
 
             totalDistanceMM += (position[axis as ECoordinateAxes] - this.lastPosition[axis as ECoordinateAxes]) ** 2
 
@@ -49,7 +50,7 @@ export class WinderMachine {
         let command = 'G92';
         for (const axis of Object.keys(position)) {
             const rawAxis = AxisLookup[axis as ECoordinateAxes];
-            command += ` ${rawAxis}${position[axis as ECoordinateAxes]}`;
+            command += ` ${rawAxis}${stripPrecision(position[axis as ECoordinateAxes])}`;
 
             this.lastPosition[axis as ECoordinateAxes] = position[axis as ECoordinateAxes];
         }
@@ -75,7 +76,6 @@ export class WinderMachine {
 
     public insertComment(text: string): void {
         this.gcode.push(`; ${text}`)
-
     }
 
     public getGCodeTimeS(): number {
