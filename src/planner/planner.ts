@@ -109,7 +109,7 @@ export function planHelicalLayer(machine: WinderMachine, layerParameters: ILayer
     // The number of degrees that the mandrel rotates through at the ends of each circuit
     const lockDegrees = layerParameters.parameters.lockDegrees;
     // The angle that the delivery head is commanded to during a "there" pass
-    const deliveryHeadAngleDegrees = -layerParameters.parameters.windAngle;
+    const deliveryHeadAngleDegrees = -1 * (90 - layerParameters.parameters.windAngle);
     // Self explanatory
     const mandrelCircumference = Math.PI * layerParameters.mandrelParameters.diameter;
     // Given the tow width and wind angle, what width will one pass of tow occupy when wrapped onto the mandrel
