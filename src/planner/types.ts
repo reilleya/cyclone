@@ -18,7 +18,8 @@ export interface ITowParameters {
 
 export const enum ELayerType {
     HOOP = 'hoop',
-    HELICAL = 'helical'
+    HELICAL = 'helical',
+    SKIP = 'skip'
 }
 
 export type THoopLayer = {
@@ -33,9 +34,15 @@ export type THelicalLayer = {
     lockDegrees: number; // The number of degrees that the mandrel rotates through at the ends of each circuit
     leadInMM: number; // The portion of the pass on each end during which the delivery head rotates into place
     leadOutDegrees: number; // The portion of each lock that the delivery head rotates back to level during
+    skipInitialNearLock: boolean | undefined; // For sequences of multi
 }
 
-export type TLayerParameters = THoopLayer | THelicalLayer;
+export type TSkipLayer = {
+    windType: ELayerType.SKIP;
+    mandrelRotation: number;
+}
+
+export type TLayerParameters = THoopLayer | THelicalLayer | TSkipLayer;
 
 export interface ILayerParameters<TLayerSpecificParameters extends TLayerParameters> {
     parameters: TLayerSpecificParameters;

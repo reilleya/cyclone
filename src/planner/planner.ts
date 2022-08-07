@@ -1,4 +1,11 @@
-import type { IWindParameters, IMandrelParameters, ITowParameters, ILayerParameters, THelicalLayer, THoopLayer } from './types';
+import type { IWindParameters,
+    IMandrelParameters,
+    ITowParameters,
+    ILayerParameters,
+    THelicalLayer,
+    THoopLayer,
+    TSkipLayer
+} from './types';
 import { ECoordinateAxes } from './types';
 import { ELayerType } from './types';
 import { WinderMachine } from './machine';
@@ -34,6 +41,13 @@ export function planWind(windingParameters: IWindParameters): string[] {
                     towParameters: windingParameters.towParameters
                 });
                 break;
+
+            case ELayerType.SKIP:
+                planSkipLayer(machine, {
+                    parameters: layer,
+                    mandrelParameters: windingParameters.mandrelParameters,
+                    towParameters: windingParameters.towParameters
+                })
         }
 
         // Increment mandrel diameter, etc
@@ -155,14 +169,16 @@ export function planHelicalLayer(machine: WinderMachine, layerParameters: ILayer
         return void 0;
     }
 
-    machine.move({
-        [ECoordinateAxes.CARRIAGE]: 0,
-        [ECoordinateAxes.MANDREL]: lockDegrees,
-        [ECoordinateAxes.DELIVERY_HEAD]: 0
-    });
-    machine.setPosition({
-        [ECoordinateAxes.MANDREL]: 0,
-    });
+    if (typeof layerParameters.parameters.skipInitialNearLock === 'undefined' || !layerParameters.parameters.skipInitialNearLock) {
+        machine.move({
+            [ECoordinateAxes.CARRIAGE]: 0,
+            [ECoordinateAxes.MANDREL]: lockDegrees,
+            [ECoordinateAxes.DELIVERY_HEAD]: 0
+        });
+        machine.setPosition({
+            [ECoordinateAxes.MANDREL]: 0,
+        });
+    }
 
     let mandrelPositionDegrees = 0;
     // The outer loop tracks the number of times we complete the pattern on the mandrel
@@ -223,4 +239,18 @@ export function planHelicalLayer(machine: WinderMachine, layerParameters: ILayer
     });
 
     machine.zeroAxes(mandrelPositionDegrees);
+}
+
+
+export function planSkipLayer(machine: WinderMachine, layerParameters: ILayerParameters<TSkipLayer>): void {
+    // Advance the mandrel by the specified number of degrees
+    machine.move({
+        [ECoordinateAxes.CARRIAGE]: 0,
+        [ECoordinateAxes.MANDREL]: layerParameters.parameters.mandrelRotation,
+        [ECoordinateAxes.DELIVERY_HEAD]: 0
+    });
+
+    machine.setPosition({
+        [ECoordinateAxes.MANDREL]: 0,
+    });
 }
