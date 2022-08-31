@@ -15,14 +15,21 @@ require('yargs').command({
             describe: 'Serial port to connect to',
             demandOption: true,
             type: 'string'
+        },
+        verbose: {
+            alias: 'v',
+            describe: 'Log every command?',
+            deafult: false,
+            type: 'boolean'
         }
     },
     async handler(argv: Record<string, string>): Promise<void> {
-        const marlin = new MarlinPort(argv.port);
+        const verboseMode = typeof argv.verbose !== 'undefined' ? true : false;
+        const marlin = new MarlinPort(argv.port, verboseMode);
         const marlinInitialized = marlin.initialize();
         const data = await fs.readFile(argv.file);
         console.log(`Sending commands from "${argv.file}"`);
-        await marlin;
+        await marlinInitialized;
         for (const command of data.toString().trim().split('\n')) {
             marlin.queueCommand(command);
         }

@@ -10,7 +10,7 @@ export class MarlinPort {
     private commandQueue: string[] = [];
     private hasCommandWaiting = false;
 
-    constructor( private portPath: string, private baudRate = 115200 ) {
+    constructor( private portPath: string, private verbose = false, private baudRate = 115200 ) {
 
     }
 
@@ -85,7 +85,9 @@ export class MarlinPort {
             console.log(commandToSend.slice(1).trim())
             return this.tryNextCommand();
         }
-        console.log(`Sending "${commandToSend}"`);
+        if (this.verbose) {
+            console.log(`Sending "${commandToSend}"`);
+        }
         this.hasCommandWaiting = true;
         this.port.write(`${commandToSend}\n`);
     }
