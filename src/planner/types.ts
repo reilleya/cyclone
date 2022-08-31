@@ -24,6 +24,7 @@ export const enum ELayerType {
 
 export type THoopLayer = {
     windType: ELayerType.HOOP;
+    terminal: boolean; // Is this a one-way hoop layer, or are there other layers afterwards?
 }
 
 export type THelicalLayer = {
@@ -34,7 +35,7 @@ export type THelicalLayer = {
     lockDegrees: number; // The number of degrees that the mandrel rotates through at the ends of each circuit
     leadInMM: number; // The portion of the pass on each end during which the delivery head rotates into place
     leadOutDegrees: number; // The portion of each lock that the delivery head rotates back to level during
-    skipInitialNearLock: boolean | undefined; // For sequences of multi
+    skipInitialNearLock: boolean | undefined; // For sequences of multiple helical layers, skip the extra near lock
 }
 
 export type TSkipLayer = {

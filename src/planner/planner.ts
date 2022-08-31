@@ -24,7 +24,16 @@ export function planWind(windingParameters: IWindParameters): string[] {
     machine.setFeedRate(windingParameters.defaultFeedRate);
     // TODO: Run other setup stuff
 
+    let encounteredTerminalLayer = false;
+    let layerIndex = 0;
+
     for (const layer of windingParameters.layers) {
+        if (encounteredTerminalLayer) {
+            console.warn('WARNING: Attempting to plan a layer after a terminal layer, aborting...');
+            break;
+        }
+
+        machine.insertComment(`Layer ${layerIndex + 1} of ${windingParameters.layers.length}: ${layer.windType}`);
         switch(layer.windType) {
             case ELayerType.HOOP:
                 planHoopLayer(machine, {
@@ -32,6 +41,7 @@ export function planWind(windingParameters: IWindParameters): string[] {
                     mandrelParameters: windingParameters.mandrelParameters,
                     towParameters: windingParameters.towParameters
                 });
+                encounteredTerminalLayer = encounteredTerminalLayer || layer.terminal;
                 break;
 
             case ELayerType.HELICAL:
@@ -51,6 +61,7 @@ export function planWind(windingParameters: IWindParameters): string[] {
         }
 
         // Increment mandrel diameter, etc
+        layerIndex += 1;
     }
 
     // TODO: Run cleanup stuff
@@ -60,7 +71,8 @@ export function planWind(windingParameters: IWindParameters): string[] {
     return machine.getGCode();
 }
 
-// Each layer planning function is responsible for a there-and-back and resetting the coordinates to (0, 0, 0) at the end
+// A layer planning function is responsible for a there-and-back and resetting the coordinates to (0, 0, 0) when done
+// They are allowed to just perform a "there" pass if marked as terminal, but an error will be thrown if layers follow
 
 export function planHoopLayer(machine: WinderMachine, layerParameters: ILayerParameters<THoopLayer>): void {
     // For now, assume overlap factor of 1.0
@@ -95,6 +107,10 @@ export function planHoopLayer(machine: WinderMachine, layerParameters: ILayerPar
         [ECoordinateAxes.MANDREL]: farLockPositionDegrees,
         [ECoordinateAxes.DELIVERY_HEAD]: 0
     });
+    // If this is a terminal layer, we want to leave the carriage at that end of the machine
+    if (layerParameters.parameters.terminal) {
+        return void 0;
+    }
     // Tilt delivery head
     machine.move({
         [ECoordinateAxes.DELIVERY_HEAD]: windAngle,
