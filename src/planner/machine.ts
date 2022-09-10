@@ -9,10 +9,13 @@ export class WinderMachine {
     // Profiler state
     private feedRateMMpM = 0;
     private totalTimeS = 0;
+    private totalTowLengthMM = 0;
     private lastPosition: TCoordinateAxes;
+    private mandrelDiameter: number;
 
-    constructor() {
+    constructor(mandrelDiameter: number) {
         this.lastPosition = {[ECoordinateAxes.CARRIAGE]: 0, [ECoordinateAxes.MANDREL]: 0, [ECoordinateAxes.DELIVERY_HEAD]: 0}
+        this.mandrelDiameter = mandrelDiameter;
     }
 
     public getGCode(): string[] {
@@ -29,19 +32,50 @@ export class WinderMachine {
     }
 
     public move(position: TCoordinate): void {
-        let totalDistanceMM = 0;
+        // Distance of the move in "Marlin Units", used for time profiling
+        //  Treats mandrel degrees as MM and accounts for delivery head movements, because that's what marlin does
+        let totalDistanceMarlinUnitsSq = 0;
+        // Total distance of the move in actual MM, taking into account mandrel diameter and ignoring delivery head
+        let towLengthMMSq = 0;
         let command = 'G0';
         for (const axis in position) {
             const rawAxis = AxisLookup[axis as ECoordinateAxes];
             command += ` ${rawAxis}${stripPrecision(position[axis as ECoordinateAxes])}`;
 
-            totalDistanceMM += (position[axis as ECoordinateAxes] - this.lastPosition[axis as ECoordinateAxes]) ** 2
+            // Everything in this loop below here is just for the profiler
+
+            // Get the amount this axis moved
+            const moveComponent = position[axis as ECoordinateAxes] - this.lastPosition[axis as ECoordinateAxes];
+
+            // Add this onto the tally of "marlin units" that we will use to estimate time
+            totalDistanceMarlinUnitsSq += moveComponent ** 2;
+
+            // Handles incrementing tow length
+            switch (axis) {
+                case ECoordinateAxes.MANDREL: {
+                    // Mandrel units are actually degrees, so convert them to arc length
+                    const arcLengthMM = moveComponent / 360 * this.mandrelDiameter * Math.PI;
+                    towLengthMMSq += arcLengthMM ** 2;
+                    break;
+                }
+                case ECoordinateAxes.CARRIAGE: {
+                    // Carriage units are just MM
+                    towLengthMMSq += moveComponent ** 2;
+                    break;
+                }
+                case ECoordinateAxes.DELIVERY_HEAD:
+                default: {
+                    // Do not add delivery head movement onto the tow length because moving it doesn't unspool more
+                    break;
+                }
+            }
 
             this.lastPosition[axis as ECoordinateAxes] = position[axis as ECoordinateAxes];
         }
 
         // Assumes instantaneous acceleration
-        this.totalTimeS += totalDistanceMM ** 0.5 / this.feedRateMMpM * 60;
+        this.totalTimeS += totalDistanceMarlinUnitsSq ** 0.5 / this.feedRateMMpM * 60;
+        this.totalTowLengthMM += towLengthMMSq ** 0.5;
 
         this.gcode.push(command);
     }
@@ -80,6 +114,15 @@ export class WinderMachine {
 
     public getGCodeTimeS(): number {
         return this.totalTimeS;
+    }
+
+    public getTowLengthM(): number {
+        return this.totalTowLengthMM / 1000;
+    }
+
+    // Update the mandrel diameter to a new value, useful for incrementing it to account for previous layers
+    public setMandrelDiameter(mandrelDiameter: number): void {
+        this.mandrelDiameter = mandrelDiameter;
     }
 
 }

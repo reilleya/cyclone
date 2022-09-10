@@ -13,7 +13,7 @@ import { radToDeg, degToRad } from '../helpers';
 
 export function planWind(windingParameters: IWindParameters): string[] {
 
-    const machine = new WinderMachine();
+    const machine = new WinderMachine(windingParameters.mandrelParameters.diameter);
 
     const headerParameters = {
         mandrel: windingParameters.mandrelParameters,
@@ -67,6 +67,7 @@ export function planWind(windingParameters: IWindParameters): string[] {
     // TODO: Run cleanup stuff
 
     console.log(`Rough time estimate: ${machine.getGCodeTimeS()} seconds`);
+    console.log(`Tow required: ${machine.getTowLengthM()} meters`);
 
     return machine.getGCode();
 }
