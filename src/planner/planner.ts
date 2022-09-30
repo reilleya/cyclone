@@ -26,6 +26,8 @@ export function planWind(windingParameters: IWindParameters): string[] {
 
     let encounteredTerminalLayer = false;
     let layerIndex = 0;
+    let cumulativeTimeS = 0;
+    let cumulativeTowUseM = 0;
 
     for (const layer of windingParameters.layers) {
         if (encounteredTerminalLayer) {
@@ -33,7 +35,9 @@ export function planWind(windingParameters: IWindParameters): string[] {
             break;
         }
 
-        machine.insertComment(`Layer ${layerIndex + 1} of ${windingParameters.layers.length}: ${layer.windType}`);
+        const layerComment = `Layer ${layerIndex + 1} of ${windingParameters.layers.length}: ${layer.windType}`;
+        console.log(layerComment)
+        machine.insertComment(layerComment);
         switch(layer.windType) {
             case ELayerType.HOOP:
                 planHoopLayer(machine, {
@@ -62,12 +66,20 @@ export function planWind(windingParameters: IWindParameters): string[] {
 
         // Increment mandrel diameter, etc
         layerIndex += 1;
+
+        console.log(`Layer time estimate: ${machine.getGCodeTimeS() - cumulativeTimeS} seconds`);
+        console.log(`Layer tow required: ${machine.getTowLengthM() - cumulativeTowUseM} meters`);
+
+        cumulativeTimeS = machine.getGCodeTimeS();
+        cumulativeTowUseM = machine.getTowLengthM();
+
+        console.log('-'.repeat(80))
     }
 
     // TODO: Run cleanup stuff
 
-    console.log(`Rough time estimate: ${machine.getGCodeTimeS()} seconds`);
-    console.log(`Tow required: ${machine.getTowLengthM()} meters`);
+    console.log(`\nTotal time estimate: ${cumulativeTimeS} seconds`);
+    console.log(`Total tow required: ${cumulativeTowUseM} meters\n`);
 
     return machine.getGCode();
 }
