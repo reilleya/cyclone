@@ -3,6 +3,7 @@ import { planWind } from './planner';
 import { plotGCode } from './plotter';
 import { hideBin } from 'yargs/helpers';
 import { promises as fs, createWriteStream } from 'fs';
+import * as readline from 'readline';
 
 // Looks like using yargs most any other way is kind of broken
 /* eslint-disable-next-line @typescript-eslint/no-var-requires */
@@ -30,6 +31,26 @@ require('yargs').command({
         const data = await fs.readFile(argv.file);
         console.log(`Sending commands from "${argv.file}"`);
         await marlinInitialized;
+
+        readline.emitKeypressEvents(process.stdin);
+
+        if (process.stdin.isTTY) {
+            process.stdin.setRawMode(true);
+        }
+
+        process.stdin.on('keypress', (chunk, key) => {
+            if (key && key.name === 'space') {
+                if (marlin.isPaused()) {
+                    console.log('Resuming machine...');
+                    return marlin.resume();
+                }
+                console.log('Pausing machine, press "space" again to resume after it stops');
+                marlin.pause();
+
+            }
+        });
+
+
         for (const command of data.toString().trim().split('\n')) {
             marlin.queueCommand(command);
         }

@@ -10,6 +10,10 @@ export class MarlinPort {
     private commandQueue: string[] = [];
     private hasCommandWaiting = false;
 
+    private pausing = false;
+    private paused = false;
+    private resuming = false;
+
     constructor( private portPath: string, private verbose = false, private baudRate = 115200 ) {
 
     }
@@ -60,6 +64,45 @@ export class MarlinPort {
         this.tryNextCommand();
     }
 
+    public pause(): void {
+        if (this.paused || this.pausing || this.resuming) {
+            console.log('Cannot pause when already paused or resuming!');
+            return void 0;
+        }
+        this.pausing = true;
+        this.writeCommand('M0');
+    }
+
+    public completePause(): void {
+        this.pausing = false;
+        this.paused = true;
+        console.log('Machine paused.')
+    }
+
+    public isPaused(): boolean {
+        return this.paused || this.pausing;
+    }
+
+    public resume(): void {
+        if (!this.paused || this.resuming) {
+            console.log('Cannot resume when already resuming or not paused!');
+            return void 0;
+        }
+        this.resuming = true;
+        this.writeCommand('M108');
+    }
+
+    public completeResume(): void {
+        if (!this.paused || !this.resuming) {
+            console.log('Cannot complete resume while not paused or resuming!');
+            return void 0;
+        }
+        this.pausing = false;
+        this.paused = false;
+        this.resuming = false;
+        this.tryNextCommand();
+    }
+
     private processSerialResponseLine(line: string): void {
         if ( line === 'ok' ) {
             this.hasCommandWaiting = false; 
@@ -67,7 +110,21 @@ export class MarlinPort {
             return void 0;
         }
 
-        if ( line === 'echo:busy: processing' ) {
+        if ( line === 'echo:busy: processing' || line == 'echo:busy: paused for user' ) {
+            return void 0;
+        }
+
+        if ( line === '//action:notification Click to Resume...') {
+            this.completePause();
+            return void 0;
+        }
+
+        if ( line === '//action:notification 3D Printer Ready.') {
+            if (!this.resuming) {
+                console.log('Saw resume response while not resuming!');
+                return void 0;
+            }
+            this.completeResume();
             return void 0;
         }
 
@@ -76,7 +133,7 @@ export class MarlinPort {
     }
 
     private tryNextCommand(): void {
-        if (this.hasCommandWaiting || this.commandQueue.length === 0) {
+        if (this.hasCommandWaiting || this.commandQueue.length === 0 || this.paused) {
             return void 0;
         }
         const commandToSend = this.commandQueue.shift();
@@ -89,6 +146,10 @@ export class MarlinPort {
             console.log(`Sending "${commandToSend}"`);
         }
         this.hasCommandWaiting = true;
-        this.port.write(`${commandToSend}\n`);
+        this.writeCommand(commandToSend);
+    }
+
+    private writeCommand(command: string): void {
+        this.port.write(`${command}\n`);
     }
 }
