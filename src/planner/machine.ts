@@ -5,6 +5,7 @@ import { interpolateCoordinates, serializeCoordinate } from './helpers';
 // Abstracts generating GCode while performing boundary checking, etc
 export class WinderMachine {
 
+    private verboseOutput: boolean;
     private gcode: string[] = [];
 
     // Profiler state
@@ -14,9 +15,10 @@ export class WinderMachine {
     private lastPosition: TCoordinateAxes;
     private mandrelDiameter: number;
 
-    constructor(mandrelDiameter: number) {
+    constructor(mandrelDiameter: number, verboseOutput = false) {
         this.lastPosition = {[ECoordinateAxes.CARRIAGE]: 0, [ECoordinateAxes.MANDREL]: 0, [ECoordinateAxes.DELIVERY_HEAD]: 0}
         this.mandrelDiameter = mandrelDiameter;
+        this.verboseOutput = verboseOutput;
     }
 
     public getGCode(): string[] {
@@ -39,12 +41,16 @@ export class WinderMachine {
         const doSegmentMove = this.lastPosition[ECoordinateAxes.CARRIAGE] !== completeEndPosition[ECoordinateAxes.CARRIAGE];
         // If we don't need to divide the move into multiple segments, run it as just one.
         if (!doSegmentMove) {
-            this.insertComment(`Move from ${serializeCoordinate(this.lastPosition)} to ${serializeCoordinate(completeEndPosition)} as a simple move`);
+            if (this.verboseOutput) {
+                this.insertComment(`Move from ${serializeCoordinate(this.lastPosition)} to ${serializeCoordinate(completeEndPosition)} as a simple move`);
+            }
             return this.moveSegment(position);
         }
         // For segmented moves, divide the total move so each piece has ~1mm of carriage movement
         const numSegments = Math.round(Math.abs(this.lastPosition[ECoordinateAxes.CARRIAGE] - completeEndPosition[ECoordinateAxes.CARRIAGE])) + 1;
-        this.insertComment(`Move from ${serializeCoordinate(this.lastPosition)} to ${serializeCoordinate(completeEndPosition)} in ${numSegments} segments`);
+        if (this.verboseOutput) {
+            this.insertComment(`Move from ${serializeCoordinate(this.lastPosition)} to ${serializeCoordinate(completeEndPosition)} in ${numSegments} segments`);
+        }
         for (let intermediatePosition of interpolateCoordinates(this.lastPosition, completeEndPosition, numSegments)) {
             this.moveSegment(intermediatePosition);
         }

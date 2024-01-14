@@ -11,9 +11,9 @@ import { ELayerType } from './types';
 import { WinderMachine } from './machine';
 import { radToDeg, degToRad } from '../helpers'; 
 
-export function planWind(windingParameters: IWindParameters): string[] {
+export function planWind(windingParameters: IWindParameters, verboseOutput = false): string[] {
 
-    const machine = new WinderMachine(windingParameters.mandrelParameters.diameter);
+    const machine = new WinderMachine(windingParameters.mandrelParameters.diameter, verboseOutput);
 
     const headerParameters = {
         mandrel: windingParameters.mandrelParameters,

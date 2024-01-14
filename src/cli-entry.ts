@@ -20,13 +20,12 @@ require('yargs').command({
         verbose: {
             alias: 'v',
             describe: 'Log every command?',
-            deafult: false,
+            default: false,
             type: 'boolean'
         }
     },
     async handler(argv: Record<string, string>): Promise<void> {
-        const verboseMode = typeof argv.verbose !== 'undefined' ? true : false;
-        const marlin = new MarlinPort(argv.port, verboseMode);
+        const marlin = new MarlinPort(argv.port, (argv.verbose as unknown) as boolean);
         const marlinInitialized = marlin.initialize();
         const data = await fs.readFile(argv.file);
         console.log(`Sending commands from "${argv.file}"`);
@@ -65,13 +64,19 @@ require('yargs').command({
             describe: 'File to output to',
             demandOption: false,
             type: 'string'
+        },
+        verbose: {
+            alias: 'v',
+            describe: 'Include comments explaining segmented moves?',
+            default: false,
+            type: 'boolean'
         }
     },
     async handler(argv: Record<string, string>): Promise<void> {
         const fileContents = await fs.readFile(argv.file, "binary");
         const windDefinition = JSON.parse(fileContents);
         // Todo: Verify contents
-        const windCommands = planWind(windDefinition);
+        const windCommands = planWind(windDefinition, (argv.verbose as unknown) as boolean);
         await fs.writeFile(argv.output, windCommands.join('\n'));
         console.log(`Wrote ${windCommands.length} commands to "${argv.output}"`);
     }
