@@ -7,7 +7,7 @@ Cyclone is a script for generating and executing filament winding toolpaths. It 
 
 Download and Setup
 -------
-Cyclone is currently provided ony as the source code, which can be cloned or downloaded from this repository. The script requires [node.js](https://nodejs.org/)) to run. Once node.js is installed and Cyclone is downloaded, navigate to the Cyclone directory in a terminal and install its dependencies with: 
+Cyclone is currently provided ony as the source code, which can be cloned or downloaded from this repository. The script requires [node.js](https://nodejs.org/)) to run. Ensure canvas is not listed as a dependency in package.json before installation. Once node.js is installed and Cyclone is downloaded, navigate to the Cyclone directory in a terminal and install its dependencies with: 
 ```
 npm install canvas
 npm i
