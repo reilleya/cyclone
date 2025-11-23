@@ -9,7 +9,6 @@ Download and Setup
 -------
 Cyclone is currently provided ony as the source code, which can be cloned or downloaded from this repository. The script requires [node.js](https://nodejs.org/)) to run. Once node.js is installed and Cyclone is downloaded, navigate to the Cyclone directory in a terminal and install its dependencies with: 
 ```
-npm install canvas
 npm i
 ```
 
